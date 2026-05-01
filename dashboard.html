@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>INCOIS Dashboard — Filter Debug</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; }
+    .dashboard { display: grid; grid-template-columns: 250px 1fr; gap: 20px; }
+    .sidebar, .card, .panel { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .cards { display: flex; gap: 16px; }
+    .card { flex: 1; text-align: center; }
+    .map { border-radius: 12px; height: 300px; margin: 16px 0; }
+    .feed { max-height: 180px; overflow-y: auto; font-size: 14px; }
+    .feed p { margin: 6px 0; padding:6px; border-radius:6px; }
+    .no-results { color:#6b7280; font-style:italic; display:none; padding:6px; }
+    .debug { font-size:12px; color:#6b7280; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <h1>🌊 AquaTrack Dashboard </h1>
+  <div class="dashboard">
+    <!-- Sidebar Filters -->
+    <div class="sidebar">
+      <h2>Filters</h2>
+      <label>Event Type</label><br />
+      <select id="eventType" style="width:100%; margin-bottom:10px;">
+        <option>All</option>
+        <option>Tsunami</option>
+        <option>Storm Surge</option>
+        <option>High Waves</option>
+      </select><br />
+      <label>Source</label><br />
+      <select id="source" style="width:100%; margin-bottom:10px;">
+        <option>All</option>
+        <option>Citizen Reports</option>
+        <option>Social Media</option>
+      </select><br />
+      <label>Date</label><br />
+      <input type="date" id="dateFilter" style="width:100%; margin-bottom:10px;" /><br />
+      <button id="applyBtn" style="width:100%; padding:8px; background:#2563eb; color:white; border:none; border-radius:6px;">
+        Apply Filters
+      </button>
+      <div class="debug" id="debugInfo">Filters: </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div>
+      <!-- Stats -->
+      <div class="cards">
+        <div class="card">
+          <p>Total Reports</p>
+          <h2 id="totalReports">1,500</h2>
+        </div>
+        <div class="card">
+          <p>Active Hazards</p>
+          <h2 id="activeHazards">7</h2>
+        </div>
+        <div class="card">
+          <p>Social Media Mentions</p>
+          <h2 id="socialMentions">4,200</h2>
+        </div>
+      </div>
+
+      <!-- Map -->
+      <div id="map" class="map"></div>
+
+      <!-- Social Media Feed -->
+      <div class="panel">
+        <h3>Live Social Media Feed</h3>
+        <div class="feed" id="feed">
+          <p data-type="High Waves" data-source="Social Media" data-date="2025-09-05">⚠️ High waves observed near Vizag beach – Twitter</p>
+          <p data-type="Storm Surge" data-source="Citizen Reports" data-date="2025-09-06">🌊 Coastal flooding reported in Kerala – Facebook</p>
+          <p data-type="Tsunami" data-source="Social Media" data-date="2025-09-07">🚨 Strong currents near Chennai coast – YouTube</p>
+          <p data-type="High Waves" data-source="Social Media" data-date="2025-09-07">🌊 Big swell at Kanyakumari – Instagram</p>
+          <p data-type="Storm Surge" data-source="Citizen Reports" data-date="2025-09-04">⚠️ Local alert near Goa – Local report</p>
+        </div>
+        <div class="no-results" id="noResults">No feed items match the selected filters.</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const eventType = document.getElementById("eventType");
+      const source = document.getElementById("source");
+      const dateFilter = document.getElementById("dateFilter");
+      const applyBtn = document.getElementById("applyBtn");
+      const feed = document.getElementById("feed");
+      const noResults = document.getElementById("noResults");
+      const debugInfo = document.getElementById("debugInfo");
+
+      const totalReportsEl = document.getElementById("totalReports");
+      const activeHazardsEl = document.getElementById("activeHazards");
+      const socialMentionsEl = document.getElementById("socialMentions");
+
+      // collect items once
+      const items = Array.from(feed.querySelectorAll("p[data-type]"));
+
+      function updateDebug() {
+        debugInfo.textContent = `Filters → Type: "${eventType.value}", Source: "${source.value}", Date: "${dateFilter.value || 'Any'}"`;
+      }
+
+      function applyFilters() {
+        console.clear();
+        console.log("Applying filters...");
+        updateDebug();
+
+        const typeVal = eventType.value;
+        const sourceVal = source.value;
+        const dateVal = dateFilter.value;
+
+        let visibleCount = 0;
+        const visibleTypes = new Set();
+        let socialCount = 0;
+
+        items.forEach(item => {
+          const itemType = item.dataset.type || "";
+          const itemSource = item.dataset.source || "";
+          const itemDate = item.dataset.date || "";
+
+          const matchesType = (typeVal === "All" || itemType === typeVal);
+          const matchesSource = (sourceVal === "All" || itemSource === sourceVal);
+          const matchesDate = (!dateVal || itemDate === dateVal);
+
+          const show = matchesType && matchesSource && matchesDate;
+
+          item.style.display = show ? "" : "none";
+          if (show) {
+            visibleCount++;
+            visibleTypes.add(itemType);
+            if (itemSource === "Social Media") socialCount++;
+          }
+
+          console.log(`Item: "${item.textContent.trim()}" → type:${itemType} source:${itemSource} date:${itemDate} show:${show}`);
+        });
+
+        // boosted stats (not exactly equal to count, but more realistic)
+        totalReportsEl.textContent = visibleCount * 50;  
+        activeHazardsEl.textContent = visibleTypes.size;
+        socialMentionsEl.textContent = socialCount * 120;  
+
+        noResults.style.display = visibleCount === 0 ? "block" : "none";
+
+        console.log(`Visible count: ${visibleCount}, Unique hazards: ${visibleTypes.size}, Social mentions: ${socialCount}`);
+      }
+
+      // hook up apply button
+      applyBtn.addEventListener("click", applyFilters);
+      applyFilters();
+
+      // Leaflet map
+      const map = L.map("map").setView([20.5937, 78.9629], 5); // India center
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors"
+      }).addTo(map);
+
+      // Example markers (you can add more dynamically later)
+      L.marker([17.6868, 83.2185]).addTo(map).bindPopup("Vizag - High Waves");
+      L.marker([9.9312, 76.2673]).addTo(map).bindPopup("Kerala - Storm Surge");
+      L.marker([13.0827, 80.2707]).addTo(map).bindPopup("Chennai - Tsunami Alert");
+      L.marker([8.0883, 77.5385]).addTo(map).bindPopup("Kanyakumari - Big Swell");
+      L.marker([15.2993, 74.1240]).addTo(map).bindPopup("Goa - Local Alert");
+    });
+  </script>
+</body>
+</html>

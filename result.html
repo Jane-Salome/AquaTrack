@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Prediction Result</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f4f8; text-align: center; padding: 40px; }
+    .card { background: white; padding: 30px; margin: auto; max-width: 500px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    h2 { color: #1e3a8a; }
+    .prediction { font-size: 1.3em; margin: 15px 0; }
+    a { text-decoration: none; color: white; background: #2563eb; padding: 10px 20px; border-radius: 5px; }
+    a:hover { background: #1e40af; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Prediction Result</h2>
+    <div class="prediction">ML Model Prediction: <b>{{ ml_pred }}</b></div>
+    <div class="prediction">Rule-based Prediction: <b>{{ rule_pred }}</b></div>
+    <h3>Input Data</h3>
+    <pre>{{ data }}</pre>
+    <br>
+    <a href="/">🔙 Back to Dashboard</a>
+  </div>
+</body>
+</html>
